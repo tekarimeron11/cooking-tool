@@ -1,8 +1,15 @@
-import type { Recipe } from '../types'
+import type { Category, Recipe } from '../types'
 
 type Props = {
   draft: Recipe
+  categories: Category[]
   onTitleChange: (title: string) => void
+  onCategoryChange: (categoryId: string) => void
+  onImageUrlChange: (url: string) => void
+  onIngredientNameChange: (ingredientId: string, name: string) => void
+  onIngredientAmountChange: (ingredientId: string, amountText: string) => void
+  onAddIngredient: () => void
+  onDeleteIngredient: (ingredientId: string) => void
   onStepTitleChange: (stepId: string, title: string) => void
   onStepNoteChange: (stepId: string, note: string) => void
   onAddStep: () => void
@@ -13,7 +20,14 @@ type Props = {
 
 export default function RecipeEditor({
   draft,
+  categories,
   onTitleChange,
+  onCategoryChange,
+  onImageUrlChange,
+  onIngredientNameChange,
+  onIngredientAmountChange,
+  onAddIngredient,
+  onDeleteIngredient,
   onStepTitleChange,
   onStepNoteChange,
   onAddStep,
@@ -42,6 +56,65 @@ export default function RecipeEditor({
           placeholder="例）野菜たっぷりミネストローネ"
         />
       </label>
+
+      <label className="field">
+        <span>カテゴリ</span>
+        <select
+          className="input"
+          value={draft.categoryId}
+          onChange={(event) => onCategoryChange(event.target.value)}
+        >
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="field">
+        <span>画像URL（任意）</span>
+        <input
+          className="input"
+          value={draft.imageUrl ?? ''}
+          onChange={(event) => onImageUrlChange(event.target.value)}
+          placeholder="https://example.com/recipe.jpg"
+        />
+      </label>
+
+      <div className="steps-header">
+        <h3>材料</h3>
+        <button className="btn accent" onClick={onAddIngredient}>
+          材料追加
+        </button>
+      </div>
+
+      <div className="ingredients-list">
+        {draft.ingredients.map((ingredient) => (
+          <div key={ingredient.id} className="ingredient-card">
+            <input
+              className="input"
+              value={ingredient.name}
+              onChange={(event) => onIngredientNameChange(ingredient.id, event.target.value)}
+              placeholder="材料名"
+            />
+            <input
+              className="input"
+              value={ingredient.amountText ?? ''}
+              onChange={(event) =>
+                onIngredientAmountChange(ingredient.id, event.target.value)
+              }
+              placeholder="数量（任意）"
+            />
+            <button
+              className="btn danger small"
+              onClick={() => onDeleteIngredient(ingredient.id)}
+            >
+              削除
+            </button>
+          </div>
+        ))}
+      </div>
 
       <div className="steps-header">
         <h3>ステップ</h3>

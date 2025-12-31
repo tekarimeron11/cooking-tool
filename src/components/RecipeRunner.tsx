@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Recipe } from '../types'
 
 type Props = {
@@ -12,6 +13,9 @@ export default function RecipeRunner({ recipe, index, onPrev, onNext, onBack }: 
   const step = recipe.steps[index]
   const isFirst = index === 0
   const isLast = index === recipe.steps.length - 1
+  const hasIngredients = recipe.ingredients.length > 0
+  const showIngredients = index === 0
+  const [ingredientsOpen, setIngredientsOpen] = useState(true)
 
   return (
     <div className="panel run">
@@ -26,6 +30,42 @@ export default function RecipeRunner({ recipe, index, onPrev, onNext, onBack }: 
           一覧へ戻る
         </button>
       </div>
+
+      {showIngredients && (
+        <section className="run-ingredients">
+          <div className="run-ingredients-header">
+            <h3>材料</h3>
+            <div className="run-ingredients-actions">
+              <span className="subtle">{hasIngredients ? recipe.ingredients.length : 0} 件</span>
+              <button
+                type="button"
+                className="btn ghost small"
+                onClick={() => setIngredientsOpen((prev) => !prev)}
+              >
+                {ingredientsOpen ? '隠す' : '表示'}
+              </button>
+            </div>
+          </div>
+          {ingredientsOpen && (
+            <>
+              {hasIngredients ? (
+                <div className="ingredients-grid">
+                  {recipe.ingredients.map((item) => (
+                    <div key={item.id} className="ingredient-row">
+                      <span className="ingredient-name">{item.name || '（未入力）'}</span>
+                      {item.amountText && (
+                        <span className="ingredient-amount">{item.amountText}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="subtle">材料がまだ登録されていません。</p>
+              )}
+            </>
+          )}
+        </section>
+      )}
 
       <div className="run-card">
         <p className="run-step-label">現在のステップ</p>

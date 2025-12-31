@@ -1,73 +1,43 @@
-# React + TypeScript + Vite
+# 料理ステップ保存 + 実行モード（MVP）
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+料理レシピ（タイトル + 複数ステップ）を保存し、実行モードで
+ステップを1つずつ大きく表示するシンプルなWebアプリです。
 
-Currently, two official plugins are available:
+## できること
+- レシピの作成 / 編集 / 削除 / 保存
+- 実行モードで1ステップずつ表示して「戻る」「次へ」で移動
+- 現在ステップ番号の表示（例: 2/7）
+- 最終ステップで「完了」表示（次へ無効）
+- 一覧へ戻るボタン
+- localStorage 永続化
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 画面
+- レシピ一覧
+- レシピ編集
+- 実行モード
 
-## React Compiler
+## 技術スタック
+- React + TypeScript
+- Vite
+- 状態管理: useReducer
+- 追加ライブラリなし
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## セットアップ
+```powershell
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## ビルド
+```powershell
+npm run build
+npm run preview
 ```
+
+## データ保存
+- localStorage キー: `recipe-mvp.v1`
+- 初回はサンプルデータを投入
+
+## メモ
+- プライベートブラウズでは localStorage が消えることがあります
+- オフラインでも動作します（初回ロードと外部フォント取得は除く）

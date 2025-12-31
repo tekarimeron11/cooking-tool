@@ -1,25 +1,39 @@
 import { useEffect, useMemo, useReducer } from 'react'
-import type { Recipe, Step } from './types'
-import { loadRecipes, saveRecipes } from './storage'
+import type { Category, IngredientLine, Recipe, Step } from './types'
+import { loadAppData, saveAppData } from './storage'
+import CategoryList from './components/CategoryList'
 import RecipeList from './components/RecipeList'
 import RecipeEditor from './components/RecipeEditor'
 import RecipeRunner from './components/RecipeRunner'
 
-type View = 'list' | 'edit' | 'run'
+type View = 'categories' | 'list' | 'edit' | 'run'
 
 type State = {
   view: View
+  categories: Category[]
   recipes: Recipe[]
-  selectedId: string | null
+  selectedCategoryId: string | null
+  selectedRecipeId: string | null
   draft: Recipe | null
   runIndex: number
 }
 
 type Action =
-  | { type: 'select'; id: string }
+  | { type: 'goto_categories' }
+  | { type: 'goto_list' }
+  | { type: 'select_category'; id: string }
+  | { type: 'open_category'; id: string }
+  | { type: 'select_recipe'; id: string }
+  | { type: 'create_category'; name: string }
   | { type: 'create' }
   | { type: 'edit' }
   | { type: 'update_title'; title: string }
+  | { type: 'update_category'; categoryId: string }
+  | { type: 'update_image_url'; imageUrl: string }
+  | { type: 'add_ingredient' }
+  | { type: 'update_ingredient_name'; ingredientId: string; name: string }
+  | { type: 'update_ingredient_amount'; ingredientId: string; amountText: string }
+  | { type: 'delete_ingredient'; ingredientId: string }
   | { type: 'update_step_title'; stepId: string; title: string }
   | { type: 'update_step_note'; stepId: string; note: string }
   | { type: 'add_step' }
@@ -42,17 +56,35 @@ const createEmptyStep = (): Step => ({
   note: '',
 })
 
+const createEmptyIngredient = (): IngredientLine => ({
+  id: uid(),
+  name: '',
+  amountText: '',
+})
+
 const cloneRecipe = (recipe: Recipe): Recipe => ({
   ...recipe,
+  ingredients:
+    recipe.ingredients.length > 0
+      ? recipe.ingredients.map((item) => ({ ...item }))
+      : [createEmptyIngredient()],
   steps: recipe.steps.map((step) => ({ ...step })),
 })
 
+const findFirstRecipeId = (recipes: Recipe[], categoryId: string | null) => {
+  if (!categoryId) return recipes[0]?.id ?? null
+  return recipes.find((item) => item.categoryId === categoryId)?.id ?? null
+}
+
 const initialState = (): State => {
-  const recipes = loadRecipes()
+  const data = loadAppData()
+  const selectedCategoryId = data.categories[0]?.id ?? null
   return {
-    view: 'list',
-    recipes,
-    selectedId: recipes[0]?.id ?? null,
+    view: 'categories',
+    categories: data.categories,
+    recipes: data.recipes,
+    selectedCategoryId,
+    selectedRecipeId: findFirstRecipeId(data.recipes, selectedCategoryId),
     draft: null,
     runIndex: 0,
   }
@@ -60,19 +92,50 @@ const initialState = (): State => {
 
 const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case 'select':
-      return { ...state, selectedId: action.id }
+    case 'goto_categories':
+      return { ...state, view: 'categories' }
+    case 'goto_list':
+      return { ...state, view: 'list' }
+    case 'select_category': {
+      const selectedRecipeId = findFirstRecipeId(state.recipes, action.id)
+      return { ...state, selectedCategoryId: action.id, selectedRecipeId }
+    }
+    case 'open_category': {
+      const selectedRecipeId = findFirstRecipeId(state.recipes, action.id)
+      return {
+        ...state,
+        selectedCategoryId: action.id,
+        selectedRecipeId,
+        view: 'list',
+      }
+    }
+    case 'select_recipe':
+      return { ...state, selectedRecipeId: action.id }
+    case 'create_category': {
+      const category: Category = { id: uid(), name: action.name }
+      return {
+        ...state,
+        categories: [...state.categories, category],
+        selectedCategoryId: category.id,
+        selectedRecipeId: findFirstRecipeId(state.recipes, category.id),
+        view: 'list',
+      }
+    }
     case 'create': {
+      const categoryId = state.selectedCategoryId ?? state.categories[0]?.id ?? uid()
       const draft: Recipe = {
         id: uid(),
         title: '新しいレシピ',
+        categoryId,
+        imageUrl: '',
+        ingredients: [createEmptyIngredient()],
         steps: [createEmptyStep()],
       }
-      return { ...state, view: 'edit', draft, selectedId: draft.id }
+      return { ...state, view: 'edit', draft, selectedRecipeId: draft.id }
     }
     case 'edit': {
-      if (!state.selectedId) return state
-      const recipe = state.recipes.find((item) => item.id === state.selectedId)
+      if (!state.selectedRecipeId) return state
+      const recipe = state.recipes.find((item) => item.id === state.selectedRecipeId)
       if (!recipe) return state
       return { ...state, view: 'edit', draft: cloneRecipe(recipe) }
     }
@@ -81,6 +144,63 @@ const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         draft: { ...state.draft, title: action.title },
+      }
+    case 'update_category':
+      if (!state.draft) return state
+      return {
+        ...state,
+        draft: { ...state.draft, categoryId: action.categoryId },
+      }
+    case 'update_image_url':
+      if (!state.draft) return state
+      return {
+        ...state,
+        draft: { ...state.draft, imageUrl: action.imageUrl },
+      }
+    case 'add_ingredient':
+      if (!state.draft) return state
+      return {
+        ...state,
+        draft: {
+          ...state.draft,
+          ingredients: [...state.draft.ingredients, createEmptyIngredient()],
+        },
+      }
+    case 'update_ingredient_name':
+      if (!state.draft) return state
+      return {
+        ...state,
+        draft: {
+          ...state.draft,
+          ingredients: state.draft.ingredients.map((item) =>
+            item.id === action.ingredientId ? { ...item, name: action.name } : item,
+          ),
+        },
+      }
+    case 'update_ingredient_amount':
+      if (!state.draft) return state
+      return {
+        ...state,
+        draft: {
+          ...state.draft,
+          ingredients: state.draft.ingredients.map((item) =>
+            item.id === action.ingredientId
+              ? { ...item, amountText: action.amountText }
+              : item,
+          ),
+        },
+      }
+    case 'delete_ingredient':
+      if (!state.draft) return state
+      return {
+        ...state,
+        draft: {
+          ...state.draft,
+          ingredients:
+            state.draft.ingredients.length === 1
+              ? [createEmptyIngredient()]
+              : state.draft.ingredients.filter((item) => item.id !== action.ingredientId),
+        },
       }
     case 'update_step_title':
       if (!state.draft) return state
@@ -129,38 +249,39 @@ const reducer = (state: State, action: Action): State => {
       if (!state.draft) return state
       const exists = state.recipes.some((item) => item.id === state.draft!.id)
       const nextRecipes = exists
-        ? state.recipes.map((item) =>
-            item.id === state.draft!.id ? state.draft! : item,
-          )
+        ? state.recipes.map((item) => (item.id === state.draft!.id ? state.draft! : item))
         : [...state.recipes, state.draft!]
       return {
         ...state,
         recipes: nextRecipes,
-        selectedId: state.draft.id,
+        selectedCategoryId: state.draft.categoryId,
+        selectedRecipeId: state.draft.id,
         draft: null,
         view: 'list',
       }
     }
     case 'delete_recipe': {
       const nextRecipes = state.recipes.filter((item) => item.id !== action.id)
-      const nextSelected =
-        state.selectedId === action.id ? nextRecipes[0]?.id ?? null : state.selectedId
+      const nextSelectedId =
+        state.selectedRecipeId === action.id
+          ? findFirstRecipeId(nextRecipes, state.selectedCategoryId)
+          : state.selectedRecipeId
       return {
         ...state,
         recipes: nextRecipes,
-        selectedId: nextSelected,
+        selectedRecipeId: nextSelectedId,
         view: 'list',
         draft: null,
         runIndex: 0,
       }
     }
     case 'run':
-      if (!state.selectedId) return state
+      if (!state.selectedRecipeId) return state
       return { ...state, view: 'run', runIndex: 0 }
     case 'run_prev':
       return { ...state, runIndex: Math.max(0, state.runIndex - 1) }
     case 'run_next': {
-      const recipe = state.recipes.find((item) => item.id === state.selectedId)
+      const recipe = state.recipes.find((item) => item.id === state.selectedRecipeId)
       const maxIndex = recipe ? recipe.steps.length - 1 : 0
       return { ...state, runIndex: Math.min(maxIndex, state.runIndex + 1) }
     }
@@ -175,12 +296,32 @@ function App() {
   const [state, dispatch] = useReducer(reducer, undefined, initialState)
 
   useEffect(() => {
-    saveRecipes(state.recipes)
-  }, [state.recipes])
+    saveAppData({ categories: state.categories, recipes: state.recipes })
+  }, [state.categories, state.recipes])
+
+  const selectedCategory = useMemo(
+    () => state.categories.find((item) => item.id === state.selectedCategoryId) ?? null,
+    [state.categories, state.selectedCategoryId],
+  )
+
+  const recipesInCategory = useMemo(
+    () => state.recipes.filter((item) => item.categoryId === state.selectedCategoryId),
+    [state.recipes, state.selectedCategoryId],
+  )
 
   const selectedRecipe = useMemo(
-    () => state.recipes.find((item) => item.id === state.selectedId) ?? null,
-    [state.recipes, state.selectedId],
+    () => state.recipes.find((item) => item.id === state.selectedRecipeId) ?? null,
+    [state.recipes, state.selectedRecipeId],
+  )
+
+  const categoryStats = useMemo(
+    () =>
+      state.categories.map((category) => ({
+        ...category,
+        recipeCount: state.recipes.filter((recipe) => recipe.categoryId === category.id)
+          .length,
+      })),
+    [state.categories, state.recipes],
   )
 
   return (
@@ -193,11 +334,36 @@ function App() {
         <span className="status-pill">MVP</span>
       </header>
 
+      <nav className="app-nav">
+        <button
+          className={`btn ghost ${state.view === 'categories' ? 'active' : ''}`}
+          onClick={() => dispatch({ type: 'goto_categories' })}
+        >
+          カテゴリ
+        </button>
+        <button
+          className={`btn ghost ${state.view === 'list' ? 'active' : ''}`}
+          onClick={() => dispatch({ type: 'goto_list' })}
+        >
+          レシピ一覧
+        </button>
+      </nav>
+
+      {state.view === 'categories' && (
+        <CategoryList
+          categories={categoryStats}
+          selectedId={state.selectedCategoryId}
+          onSelect={(id) => dispatch({ type: 'open_category', id })}
+          onCreate={(name) => dispatch({ type: 'create_category', name })}
+        />
+      )}
+
       {state.view === 'list' && (
         <RecipeList
-          recipes={state.recipes}
-          selectedId={state.selectedId}
-          onSelect={(id) => dispatch({ type: 'select', id })}
+          recipes={recipesInCategory}
+          selectedId={state.selectedRecipeId}
+          categoryName={selectedCategory?.name ?? '未分類'}
+          onSelect={(id) => dispatch({ type: 'select_recipe', id })}
           onCreate={() => dispatch({ type: 'create' })}
           onEdit={() => dispatch({ type: 'edit' })}
           onRun={() => dispatch({ type: 'run' })}
@@ -208,7 +374,22 @@ function App() {
       {state.view === 'edit' && state.draft && (
         <RecipeEditor
           draft={state.draft}
+          categories={state.categories}
           onTitleChange={(title) => dispatch({ type: 'update_title', title })}
+          onCategoryChange={(categoryId) =>
+            dispatch({ type: 'update_category', categoryId })
+          }
+          onImageUrlChange={(imageUrl) => dispatch({ type: 'update_image_url', imageUrl })}
+          onIngredientNameChange={(ingredientId, name) =>
+            dispatch({ type: 'update_ingredient_name', ingredientId, name })
+          }
+          onIngredientAmountChange={(ingredientId, amountText) =>
+            dispatch({ type: 'update_ingredient_amount', ingredientId, amountText })
+          }
+          onAddIngredient={() => dispatch({ type: 'add_ingredient' })}
+          onDeleteIngredient={(ingredientId) =>
+            dispatch({ type: 'delete_ingredient', ingredientId })
+          }
           onStepTitleChange={(stepId, title) =>
             dispatch({ type: 'update_step_title', stepId, title })
           }
