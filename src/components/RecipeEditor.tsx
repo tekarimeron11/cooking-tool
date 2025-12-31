@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Category, IngredientLine, Recipe, Step } from '../types'
 
 type Props = {
@@ -40,6 +40,10 @@ export default function RecipeEditor({
 }: Props) {
   const [pasteText, setPasteText] = useState('')
 
+  useEffect(() => {
+    setPasteText('')
+  }, [draft.id])
+
   const uid = () =>
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
@@ -50,9 +54,12 @@ export default function RecipeEditor({
     let section: 'ingredients' | 'steps' | null = null
     const ingredients: IngredientLine[] = []
     const steps: Step[] = []
+    const nutritionPattern =
+      /(エネルギー|たんぱく質|タンパク質|脂質|炭水化物|食物繊維|kcal|kJ)/i
 
     for (const raw of lines) {
       if (!raw) continue
+      if (nutritionPattern.test(raw)) continue
       if (/^【\s*材料\s*】/.test(raw)) {
         section = 'ingredients'
         continue
@@ -61,7 +68,13 @@ export default function RecipeEditor({
         section = 'steps'
         continue
       }
-      if (!section) continue
+      if (!section) {
+        if (/^\s*[\d０-９]+(?:[.\uFF0E]\d+)?/.test(raw)) {
+          section = 'steps'
+        } else {
+          continue
+        }
+      }
 
       if (section === 'ingredients') {
         const cleaned = raw.replace(/[・･\.\u30FB\u2026\uFF0E]+/g, ' ').replace(/\s+/g, ' ')
@@ -76,7 +89,7 @@ export default function RecipeEditor({
         })
       } else {
         const cleaned = raw
-          .replace(/^\s*[\d０-９]+[.\uFF0E)\uFF09\-：:]?\s*/, '')
+          .replace(/^\s*[\d０-９]+(?:[.\uFF0E]\d+)?[)\uFF09\-：:]?\s*/, '')
           .replace(/^\s*[-・●]\s*/, '')
           .trim()
         if (!cleaned) continue
@@ -98,6 +111,7 @@ export default function RecipeEditor({
       if (!ok) return
     }
     onBulkImport(ingredients, steps)
+    setPasteText('')
   }
 
   return (
@@ -148,12 +162,11 @@ export default function RecipeEditor({
       </label>
 
       <label className="field">
-        <span>コピペ入力（【材料】/【作り方】）</span>
+        <span>コピペ入力</span>
         <textarea
           className="input textarea"
           value={pasteText}
           onChange={(event) => setPasteText(event.target.value)}
-          placeholder="【材料】&#10;水・・・・800cc&#10;昆布・・・5g&#10;&#10;【作り方】&#10;1. だしを取る"
           rows={6}
         />
         <button className="btn accent" type="button" onClick={handleImport}>

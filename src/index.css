@@ -160,6 +160,12 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
+.recipe-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .recipe-card {
   border: 1px solid rgba(0, 240, 255, 0.22);
   border-radius: 18px;
@@ -239,6 +245,10 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.recipe-inline-actions {
+  justify-content: flex-start;
 }
 
 .btn {

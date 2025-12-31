@@ -93,63 +93,57 @@ export default function RecipeList({
       ) : (
         <div className="recipe-grid">
           {filteredRecipes.map((recipe) => (
-            <button
-              key={recipe.id}
-              type="button"
-              className={`recipe-card ${selectedId === recipe.id ? 'selected' : ''}`}
-              onClick={() => onSelect(recipe.id)}
-            >
-              <div className="recipe-card-media">
-                {recipe.imageUrl ? (
-                  <img src={recipe.imageUrl} alt={recipe.title} />
-                ) : (
-                  <div className="recipe-placeholder">No Image</div>
-                )}
-              </div>
-              <div className="recipe-card-body">
-                <span className="recipe-title">{recipe.title}</span>
-                <span className="recipe-meta">
-                  {recipe.ingredients.length} 材料 / {recipe.steps.length} ステップ
-                </span>
-              </div>
-              <div className="recipe-card-actions">
-                <button
-                  type="button"
-                  className={`icon-btn ${recipe.isFavorite ? 'active' : ''}`}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onToggleFavorite(recipe.id)
-                  }}
-                  aria-label="お気に入り"
-                >
-                  {recipe.isFavorite ? '★' : '☆'}
-                </button>
-                {selectedId === recipe.id && <span className="badge">選択中</span>}
-              </div>
-            </button>
+            <div key={recipe.id} className="recipe-item">
+              <button
+                type="button"
+                className={`recipe-card ${selectedId === recipe.id ? 'selected' : ''}`}
+                onClick={() => onSelect(recipe.id)}
+              >
+                <div className="recipe-card-media">
+                  {recipe.imageUrl ? (
+                    <img src={recipe.imageUrl} alt={recipe.title} />
+                  ) : (
+                    <div className="recipe-placeholder">No Image</div>
+                  )}
+                </div>
+                <div className="recipe-card-body">
+                  <span className="recipe-title">{recipe.title}</span>
+                  <span className="recipe-meta">
+                    {recipe.ingredients.length} 材料 / {recipe.steps.length} ステップ
+                  </span>
+                </div>
+                <div className="recipe-card-actions">
+                  <button
+                    type="button"
+                    className={`icon-btn ${recipe.isFavorite ? 'active' : ''}`}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onToggleFavorite(recipe.id)
+                    }}
+                    aria-label="お気に入り"
+                  >
+                    {recipe.isFavorite ? '★' : '☆'}
+                  </button>
+                  {selectedId === recipe.id && <span className="badge">選択中</span>}
+                </div>
+              </button>
+              {selectedId === recipe.id && (
+                <div className="actions-row recipe-inline-actions">
+                  <button className="btn ghost" onClick={onEdit}>
+                    編集
+                  </button>
+                  <button className="btn accent" onClick={onRun}>
+                    実行
+                  </button>
+                  <button className="btn danger" onClick={() => onDelete(selectedId)}>
+                    削除
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
-
-      <div className="actions-row">
-        <button className="btn ghost" onClick={onEdit} disabled={!selectedId}>
-          編集
-        </button>
-        <button className="btn accent" onClick={onRun} disabled={!selectedId}>
-          実行
-        </button>
-        <button
-          className="btn danger"
-          onClick={() => {
-            if (!selectedId) return
-            const ok = window.confirm('このレシピを削除しますか？')
-            if (ok) onDelete(selectedId)
-          }}
-          disabled={!selectedId}
-        >
-          削除
-        </button>
-      </div>
     </div>
   )
 }
