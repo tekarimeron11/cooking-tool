@@ -1,4 +1,5 @@
-import type { Category, Recipe } from '../types'
+import { useState } from 'react'
+import type { Category, IngredientLine, Recipe, Step } from '../types'
 
 type Props = {
   draft: Recipe
@@ -14,6 +15,7 @@ type Props = {
   onStepNoteChange: (stepId: string, note: string) => void
   onAddStep: () => void
   onDeleteStep: (stepId: string) => void
+  onBulkImport: (ingredients: IngredientLine[], steps: Step[]) => void
   onSave: () => void
   onBack: () => void
 }
@@ -32,9 +34,72 @@ export default function RecipeEditor({
   onStepNoteChange,
   onAddStep,
   onDeleteStep,
+  onBulkImport,
   onSave,
   onBack,
 }: Props) {
+  const [pasteText, setPasteText] = useState('')
+
+  const uid = () =>
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+  const parsePaste = (text: string) => {
+    const lines = text.split(/\r?\n/).map((line) => line.trim())
+    let section: 'ingredients' | 'steps' | null = null
+    const ingredients: IngredientLine[] = []
+    const steps: Step[] = []
+
+    for (const raw of lines) {
+      if (!raw) continue
+      if (/^【\s*材料\s*】/.test(raw)) {
+        section = 'ingredients'
+        continue
+      }
+      if (/^【\s*(作り方|手順|ステップ)\s*】/.test(raw)) {
+        section = 'steps'
+        continue
+      }
+      if (!section) continue
+
+      if (section === 'ingredients') {
+        const cleaned = raw.replace(/[・･\.\u30FB\u2026\uFF0E]+/g, ' ').replace(/\s+/g, ' ')
+        const parts = cleaned.split(' ').filter(Boolean)
+        if (parts.length === 0) continue
+        const name = parts.shift() ?? ''
+        const amountText = parts.join(' ')
+        ingredients.push({
+          id: uid(),
+          name,
+          amountText: amountText || '',
+        })
+      } else {
+        const cleaned = raw
+          .replace(/^\s*[\d０-９]+[.\uFF0E)\uFF09\-：:]?\s*/, '')
+          .replace(/^\s*[-・●]\s*/, '')
+          .trim()
+        if (!cleaned) continue
+        steps.push({ id: uid(), title: cleaned })
+      }
+    }
+
+    return { ingredients, steps }
+  }
+
+  const handleImport = () => {
+    const { ingredients, steps } = parsePaste(pasteText)
+    if (ingredients.length === 0 && steps.length === 0) return
+    const hasExisting =
+      draft.ingredients.some((item) => item.name.trim() !== '') ||
+      draft.steps.some((item) => item.title.trim() !== '')
+    if (hasExisting) {
+      const ok = window.confirm('現在の材料・ステップを上書きします。よろしいですか？')
+      if (!ok) return
+    }
+    onBulkImport(ingredients, steps)
+  }
+
   return (
     <div className="panel">
       <div className="panel-header">
@@ -80,6 +145,20 @@ export default function RecipeEditor({
           onChange={(event) => onImageUrlChange(event.target.value)}
           placeholder="https://example.com/recipe.jpg"
         />
+      </label>
+
+      <label className="field">
+        <span>コピペ入力（【材料】/【作り方】）</span>
+        <textarea
+          className="input textarea"
+          value={pasteText}
+          onChange={(event) => setPasteText(event.target.value)}
+          placeholder="【材料】&#10;水・・・・800cc&#10;昆布・・・5g&#10;&#10;【作り方】&#10;1. だしを取る"
+          rows={6}
+        />
+        <button className="btn accent" type="button" onClick={handleImport}>
+          材料・作り方を取り込む
+        </button>
       </label>
 
       <div className="steps-header">

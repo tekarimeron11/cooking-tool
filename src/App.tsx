@@ -38,8 +38,10 @@ type Action =
   | { type: 'update_step_note'; stepId: string; note: string }
   | { type: 'add_step' }
   | { type: 'delete_step'; stepId: string }
+  | { type: 'bulk_import'; ingredients: IngredientLine[]; steps: Step[] }
   | { type: 'save_draft' }
   | { type: 'delete_recipe'; id: string }
+  | { type: 'toggle_favorite'; id: string }
   | { type: 'run' }
   | { type: 'run_prev' }
   | { type: 'run_next' }
@@ -245,6 +247,17 @@ const reducer = (state: State, action: Action): State => {
               : state.draft.steps.filter((step) => step.id !== action.stepId),
         },
       }
+    case 'bulk_import':
+      if (!state.draft) return state
+      return {
+        ...state,
+        draft: {
+          ...state.draft,
+          ingredients:
+            action.ingredients.length > 0 ? action.ingredients : [createEmptyIngredient()],
+          steps: action.steps.length > 0 ? action.steps : [createEmptyStep()],
+        },
+      }
     case 'save_draft': {
       if (!state.draft) return state
       const exists = state.recipes.some((item) => item.id === state.draft!.id)
@@ -275,9 +288,24 @@ const reducer = (state: State, action: Action): State => {
         runIndex: 0,
       }
     }
+    case 'toggle_favorite': {
+      const nextRecipes = state.recipes.map((item) =>
+        item.id === action.id ? { ...item, isFavorite: !item.isFavorite } : item,
+      )
+      return { ...state, recipes: nextRecipes }
+    }
     case 'run':
       if (!state.selectedRecipeId) return state
-      return { ...state, view: 'run', runIndex: 0 }
+      return {
+        ...state,
+        view: 'run',
+        runIndex: 0,
+        recipes: state.recipes.map((item) =>
+          item.id === state.selectedRecipeId
+            ? { ...item, lastRunAt: Date.now() }
+            : item,
+        ),
+      }
     case 'run_prev':
       return { ...state, runIndex: Math.max(0, state.runIndex - 1) }
     case 'run_next': {
@@ -367,7 +395,11 @@ function App() {
           onCreate={() => dispatch({ type: 'create' })}
           onEdit={() => dispatch({ type: 'edit' })}
           onRun={() => dispatch({ type: 'run' })}
-          onDelete={(id) => dispatch({ type: 'delete_recipe', id })}
+          onDelete={(id) => {
+            const ok = window.confirm('このレシピを削除しますか？')
+            if (ok) dispatch({ type: 'delete_recipe', id })
+          }}
+          onToggleFavorite={(id) => dispatch({ type: 'toggle_favorite', id })}
         />
       )}
 
@@ -398,6 +430,9 @@ function App() {
           }
           onAddStep={() => dispatch({ type: 'add_step' })}
           onDeleteStep={(stepId) => dispatch({ type: 'delete_step', stepId })}
+          onBulkImport={(ingredients, steps) =>
+            dispatch({ type: 'bulk_import', ingredients, steps })
+          }
           onSave={() => dispatch({ type: 'save_draft' })}
           onBack={() => dispatch({ type: 'back_to_list' })}
         />

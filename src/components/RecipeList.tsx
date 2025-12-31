@@ -10,6 +10,7 @@ type Props = {
   onEdit: () => void
   onRun: () => void
   onDelete: (id: string) => void
+  onToggleFavorite: (id: string) => void
 }
 
 export default function RecipeList({
@@ -21,19 +22,27 @@ export default function RecipeList({
   onEdit,
   onRun,
   onDelete,
+  onToggleFavorite,
 }: Props) {
   const [query, setQuery] = useState('')
+  const [sortMode, setSortMode] = useState<'default' | 'recent'>('default')
   const normalizedQuery = query.trim().toLowerCase()
   const filteredRecipes = useMemo(() => {
-    if (!normalizedQuery) return recipes
-    return recipes.filter((recipe) => {
-      const titleMatch = recipe.title.toLowerCase().includes(normalizedQuery)
-      const ingredientMatch = recipe.ingredients.some((item) =>
-        item.name.toLowerCase().includes(normalizedQuery),
-      )
-      return titleMatch || ingredientMatch
-    })
-  }, [recipes, normalizedQuery])
+    const base = normalizedQuery
+      ? recipes.filter((recipe) => {
+        const titleMatch = recipe.title.toLowerCase().includes(normalizedQuery)
+        const ingredientMatch = recipe.ingredients.some((item) =>
+          item.name.toLowerCase().includes(normalizedQuery),
+        )
+        return titleMatch || ingredientMatch
+      })
+      : recipes
+
+    if (sortMode === 'recent') {
+      return [...base].sort((a, b) => (b.lastRunAt ?? 0) - (a.lastRunAt ?? 0))
+    }
+    return base
+  }, [recipes, normalizedQuery, sortMode])
 
   return (
     <div className="panel">
@@ -56,6 +65,22 @@ export default function RecipeList({
           onChange={(event) => setQuery(event.target.value)}
           placeholder="レシピを検索（タイトル）"
         />
+        <div className="segmented">
+          <button
+            type="button"
+            className={`segmented-btn ${sortMode === 'default' ? 'active' : ''}`}
+            onClick={() => setSortMode('default')}
+          >
+            追加順
+          </button>
+          <button
+            type="button"
+            className={`segmented-btn ${sortMode === 'recent' ? 'active' : ''}`}
+            onClick={() => setSortMode('recent')}
+          >
+            最近使った順
+          </button>
+        </div>
       </div>
 
       {filteredRecipes.length === 0 ? (
@@ -87,7 +112,20 @@ export default function RecipeList({
                   {recipe.ingredients.length} 材料 / {recipe.steps.length} ステップ
                 </span>
               </div>
-              {selectedId === recipe.id && <span className="badge">選択中</span>}
+              <div className="recipe-card-actions">
+                <button
+                  type="button"
+                  className={`icon-btn ${recipe.isFavorite ? 'active' : ''}`}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onToggleFavorite(recipe.id)
+                  }}
+                  aria-label="お気に入り"
+                >
+                  {recipe.isFavorite ? '★' : '☆'}
+                </button>
+                {selectedId === recipe.id && <span className="badge">選択中</span>}
+              </div>
             </button>
           ))}
         </div>
@@ -102,7 +140,11 @@ export default function RecipeList({
         </button>
         <button
           className="btn danger"
-          onClick={() => selectedId && onDelete(selectedId)}
+          onClick={() => {
+            if (!selectedId) return
+            const ok = window.confirm('このレシピを削除しますか？')
+            if (ok) onDelete(selectedId)
+          }}
           disabled={!selectedId}
         >
           削除

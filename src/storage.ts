@@ -89,6 +89,8 @@ const normalizeRecipes = (data: unknown, categories: Category[]): Recipe[] => {
         imageUrl: typeof recipe.imageUrl === 'string' ? recipe.imageUrl : '',
         ingredients,
         steps: steps.length > 0 ? steps : [{ id: safeId(), title: '' }],
+        isFavorite: typeof recipe.isFavorite === 'boolean' ? recipe.isFavorite : false,
+        lastRunAt: typeof recipe.lastRunAt === 'number' ? recipe.lastRunAt : undefined,
       }
     })
     .filter(Boolean) as Recipe[]

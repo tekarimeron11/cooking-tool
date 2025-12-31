@@ -22,4 +22,6 @@ export type Recipe = {
   imageUrl?: string
   ingredients: IngredientLine[]
   steps: Step[]
+  isFavorite?: boolean
+  lastRunAt?: number
 }
