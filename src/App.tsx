@@ -357,9 +357,8 @@ function App() {
       <header className="app-header">
         <div>
           <p className="eyebrow">Recipe Flow</p>
-          <h1>料理ステップ保存 + 実行モード</h1>
+          <h1>CYBER RECIPE LAB</h1>
         </div>
-        <span className="status-pill">MVP</span>
       </header>
 
       <nav className="app-nav">

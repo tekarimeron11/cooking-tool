@@ -114,6 +114,17 @@ export default function RecipeEditor({
     setPasteText('')
   }
 
+  const handleImageFile = (file?: File | null) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        onImageUrlChange(reader.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   return (
     <div className="panel">
       <div className="panel-header">
@@ -158,6 +169,16 @@ export default function RecipeEditor({
           value={draft.imageUrl ?? ''}
           onChange={(event) => onImageUrlChange(event.target.value)}
           placeholder="https://example.com/recipe.jpg"
+        />
+      </label>
+
+      <label className="field">
+        <span>画像ファイル（端末から選択）</span>
+        <input
+          className="input"
+          type="file"
+          accept="image/*"
+          onChange={(event) => handleImageFile(event.target.files?.[0])}
         />
       </label>
 

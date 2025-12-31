@@ -25,7 +25,7 @@ export default function RecipeList({
   onToggleFavorite,
 }: Props) {
   const [query, setQuery] = useState('')
-  const [sortMode, setSortMode] = useState<'default' | 'recent'>('default')
+  const [sortMode, setSortMode] = useState<'default' | 'recent'>('recent')
   const normalizedQuery = query.trim().toLowerCase()
   const filteredRecipes = useMemo(() => {
     const base = normalizedQuery
@@ -129,11 +129,11 @@ export default function RecipeList({
               </button>
               {selectedId === recipe.id && (
                 <div className="actions-row recipe-inline-actions">
-                  <button className="btn ghost" onClick={onEdit}>
-                    編集
-                  </button>
                   <button className="btn accent" onClick={onRun}>
                     実行
+                  </button>
+                  <button className="btn ghost" onClick={onEdit}>
+                    編集
                   </button>
                   <button className="btn danger" onClick={() => onDelete(selectedId)}>
                     削除
