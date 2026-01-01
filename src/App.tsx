@@ -1,10 +1,20 @@
-import { useEffect, useMemo, useReducer } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { Category, IngredientLine, Recipe, Step } from './types'
-import { loadAppData, saveAppData } from './storage'
+import { loadAppData, normalizeAppData, saveAppData } from './storage'
 import CategoryList from './components/CategoryList'
 import RecipeList from './components/RecipeList'
 import RecipeEditor from './components/RecipeEditor'
 import RecipeRunner from './components/RecipeRunner'
+import { auth, db, googleProvider } from './lib/firebase'
+import type { User } from 'firebase/auth'
+import {
+  browserLocalPersistence,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithPopup,
+  signOut,
+} from 'firebase/auth'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 type View = 'categories' | 'list' | 'edit' | 'run'
 
@@ -19,6 +29,7 @@ type State = {
 }
 
 type Action =
+  | { type: 'set_data'; categories: Category[]; recipes: Recipe[] }
   | { type: 'goto_categories' }
   | { type: 'goto_list' }
   | { type: 'select_category'; id: string }
@@ -94,6 +105,19 @@ const initialState = (): State => {
 
 const reducer = (state: State, action: Action): State => {
   switch (action.type) {
+    case 'set_data': {
+      const selectedCategoryId = action.categories[0]?.id ?? null
+      return {
+        ...state,
+        categories: action.categories,
+        recipes: action.recipes,
+        selectedCategoryId,
+        selectedRecipeId: findFirstRecipeId(action.recipes, selectedCategoryId),
+        draft: null,
+        runIndex: 0,
+        view: 'categories',
+      }
+    }
     case 'goto_categories':
       return { ...state, view: 'categories' }
     case 'goto_list':
@@ -322,10 +346,105 @@ const reducer = (state: State, action: Action): State => {
 
 function App() {
   const [state, dispatch] = useReducer(reducer, undefined, initialState)
+  const [authUser, setAuthUser] = useState<User | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [authError, setAuthError] = useState('')
+  const [remoteReady, setRemoteReady] = useState(false)
+  const latestData = useRef({ categories: state.categories, recipes: state.recipes })
+
+  useEffect(() => {
+    latestData.current = { categories: state.categories, recipes: state.recipes }
+  }, [state.categories, state.recipes])
 
   useEffect(() => {
     saveAppData({ categories: state.categories, recipes: state.recipes })
   }, [state.categories, state.recipes])
+
+  const sanitizeForFirestore = (value: unknown): unknown => {
+    if (value === undefined) return undefined
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => sanitizeForFirestore(item))
+        .filter((item) => item !== undefined)
+    }
+    if (value && typeof value === 'object') {
+      const obj: Record<string, unknown> = {}
+      Object.entries(value).forEach(([key, val]) => {
+        const sanitized = sanitizeForFirestore(val)
+        if (sanitized !== undefined) obj[key] = sanitized
+      })
+      return obj
+    }
+    return value
+  }
+
+  useEffect(() => {
+    setPersistence(auth, browserLocalPersistence).catch(() => {
+      // Fall back to in-memory if persistence isn't available.
+    })
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setAuthUser(user)
+      setAuthError('')
+      if (!user) {
+        setRemoteReady(false)
+        setAuthLoading(false)
+        return
+      }
+      try {
+        const ref = doc(db, 'users', user.uid, 'app', 'data')
+        const snap = await getDoc(ref)
+        if (snap.exists()) {
+          const data = normalizeAppData(snap.data())
+          dispatch({ type: 'set_data', categories: data.categories, recipes: data.recipes })
+          saveAppData(data)
+        } else {
+          const localData = normalizeAppData(loadAppData())
+          await setDoc(ref, { ...localData, updatedAt: serverTimestamp() }, { merge: false })
+        }
+        setRemoteReady(true)
+      } catch (error: unknown) {
+        const err = error as { code?: string; message?: string }
+        const code = err?.code ? ` (${err.code})` : ''
+        const message = err?.message ? `: ${err.message}` : ''
+        setAuthError(`ログインしましたがデータ取得に失敗しました${code}${message}`)
+      } finally {
+        setAuthLoading(false)
+      }
+    })
+    return () => unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (!authUser || !remoteReady) return
+    const ref = doc(db, 'users', authUser.uid, 'app', 'data')
+    const payload = sanitizeForFirestore({
+      ...latestData.current,
+      updatedAt: serverTimestamp(),
+    })
+    setDoc(ref, payload as Record<string, unknown>, { merge: true }).catch(() => {
+      setAuthError('クラウド保存に失敗しました。')
+    })
+  }, [authUser, remoteReady, state.categories, state.recipes])
+
+  const handleSignIn = async () => {
+    setAuthError('')
+    try {
+      await signInWithPopup(auth, googleProvider)
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string }
+      const code = err?.code ? ` (${err.code})` : ''
+      const message = err?.message ? `: ${err.message}` : ''
+      setAuthError(`ログインに失敗しました${code}${message}`)
+    }
+  }
+
+  const handleSignOut = async () => {
+    setAuthError('')
+    await signOut(auth)
+  }
 
   const selectedCategory = useMemo(
     () => state.categories.find((item) => item.id === state.selectedCategoryId) ?? null,
@@ -359,7 +478,24 @@ function App() {
           <p className="eyebrow">Recipe Flow</p>
           <h1>CYBER RECIPE LAB</h1>
         </div>
+        <div className="auth-box">
+          {authLoading ? (
+            <span className="subtle">認証中...</span>
+          ) : authUser ? (
+            <>
+              <span className="auth-name">{authUser.displayName ?? 'ログイン中'}</span>
+              <button className="btn ghost small" onClick={handleSignOut}>
+                ログアウト
+              </button>
+            </>
+          ) : (
+            <button className="btn primary" onClick={handleSignIn}>
+              Googleでログイン
+            </button>
+          )}
+        </div>
       </header>
+      {authError && <p className="auth-error">{authError}</p>}
 
       <nav className="app-nav">
         <button
