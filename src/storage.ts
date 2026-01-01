@@ -109,7 +109,7 @@ const withFallbackData = (): AppData => {
   }
 }
 
-const normalizeAppData = (data: unknown): AppData => {
+export const normalizeAppData = (data: unknown): AppData => {
   if (!data || typeof data !== 'object') return withFallbackData()
 
   if (Array.isArray(data)) {
