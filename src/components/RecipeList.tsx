@@ -49,7 +49,9 @@ export default function RecipeList({
         <div>
           <h2>レシピ一覧</h2>
           <p className="subtle">
-            {categoryName} のレシピを表示中。レシピを押すと実行確認が出ます。
+            {categoryName === '全レシピ'
+              ? '全レシピを表示中。レシピを押すと実行します。'
+              : `カテゴリ「${categoryName}」のレシピを表示中。レシピを押すと実行します。`}
           </p>
         </div>
         <button className="btn primary" onClick={onCreate}>

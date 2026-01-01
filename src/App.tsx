@@ -16,10 +16,11 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
-type View = 'categories' | 'list' | 'edit' | 'run'
+type View = 'categories' | 'list' | 'category_list' | 'edit' | 'run'
 
 type State = {
   view: View
+  lastListView: 'list' | 'category_list'
   categories: Category[]
   recipes: Recipe[]
   selectedCategoryId: string | null
@@ -96,6 +97,7 @@ const initialState = (): State => {
   const selectedCategoryId = data.categories[0]?.id ?? null
   return {
     view: 'categories',
+    lastListView: 'list',
     categories: data.categories,
     recipes: data.recipes,
     selectedCategoryId,
@@ -118,12 +120,13 @@ const reducer = (state: State, action: Action): State => {
         draft: null,
         runIndex: 0,
         view: 'categories',
+        lastListView: 'list',
       }
     }
     case 'goto_categories':
       return { ...state, view: 'categories' }
     case 'goto_list':
-      return { ...state, view: 'list' }
+      return { ...state, view: 'list', lastListView: 'list' }
     case 'select_category': {
       const selectedRecipeId = findFirstRecipeId(state.recipes, action.id)
       return { ...state, selectedCategoryId: action.id, selectedRecipeId }
@@ -134,7 +137,8 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         selectedCategoryId: action.id,
         selectedRecipeId,
-        view: 'list',
+        view: 'category_list',
+        lastListView: 'category_list',
       }
     }
     case 'select_recipe':
@@ -146,7 +150,8 @@ const reducer = (state: State, action: Action): State => {
         categories: [...state.categories, category],
         selectedCategoryId: category.id,
         selectedRecipeId: findFirstRecipeId(state.recipes, category.id),
-        view: 'list',
+        view: 'category_list',
+        lastListView: 'category_list',
       }
     }
     case 'create': {
@@ -316,7 +321,7 @@ const reducer = (state: State, action: Action): State => {
         selectedCategoryId: state.draft.categoryId,
         selectedRecipeId: state.draft.id,
         draft: null,
-        view: 'list',
+        view: state.lastListView,
       }
     }
     case 'delete_recipe': {
@@ -329,7 +334,7 @@ const reducer = (state: State, action: Action): State => {
         ...state,
         recipes: nextRecipes,
         selectedRecipeId: nextSelectedId,
-        view: 'list',
+        view: state.lastListView,
         draft: null,
         runIndex: 0,
       }
@@ -373,7 +378,7 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, runIndex: Math.min(maxIndex, state.runIndex + 1) }
     }
     case 'back_to_list':
-      return { ...state, view: 'list', draft: null, runIndex: 0 }
+      return { ...state, view: state.lastListView, draft: null, runIndex: 0 }
     default:
       return state
   }
@@ -579,6 +584,22 @@ function App() {
       )}
 
       {state.view === 'list' && (
+        <RecipeList
+          recipes={state.recipes}
+          selectedId={state.selectedRecipeId}
+          categoryName="全レシピ"
+          onCreate={() => dispatch({ type: 'create' })}
+          onEdit={(id) => dispatch({ type: 'edit_recipe', id })}
+          onRun={(id) => dispatch({ type: 'run_recipe', id })}
+          onDelete={(id) => {
+            const ok = window.confirm('このレシピを削除しますか？')
+            if (ok) dispatch({ type: 'delete_recipe', id })
+          }}
+          onToggleFavorite={(id) => dispatch({ type: 'toggle_favorite', id })}
+        />
+      )}
+
+      {state.view === 'category_list' && (
         <RecipeList
           recipes={recipesInCategory}
           selectedId={state.selectedRecipeId}
