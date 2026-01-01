@@ -98,8 +98,7 @@ export default function RecipeList({
                 className={`recipe-card ${selectedId === recipe.id ? 'selected' : ''}`}
                 onClick={() => {
                   setMenuOpenId(null)
-                  const ok = window.confirm('実行しますか？')
-                  if (ok) onRun(recipe.id)
+                  onRun(recipe.id)
                 }}
               >
                 <div className="recipe-card-body">
