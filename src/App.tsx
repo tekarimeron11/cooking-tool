@@ -402,7 +402,11 @@ function App() {
           saveAppData(data)
         } else {
           const localData = normalizeAppData(loadAppData())
-          await setDoc(ref, { ...localData, updatedAt: serverTimestamp() }, { merge: false })
+          const payload = sanitizeForFirestore({
+            ...localData,
+            updatedAt: serverTimestamp(),
+          })
+          await setDoc(ref, payload as Record<string, unknown>, { merge: false })
         }
         setRemoteReady(true)
       } catch (error: unknown) {
