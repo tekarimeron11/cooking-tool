@@ -47,7 +47,7 @@ export default function RecipeList({
     <div className="panel">
       <div className="panel-header">
         <div>
-          <h2>レシピ一覧</h2>
+          <h2>{categoryName === '全レシピ' ? 'レシピ一覧' : categoryName}</h2>
           <p className="subtle">
             {categoryName === '全レシピ'
               ? '全レシピを表示中。レシピを押すと実行します。'
