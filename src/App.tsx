@@ -202,7 +202,7 @@ const reducer = (state: State, action: Action): State => {
           : state.selectedCategoryId ?? fallbackCategoryId
       const draft: Recipe = {
         id: uid(),
-        title: '新しいレシピ',
+        title: '',
         categoryId,
         sourceUrl: '',
         ingredients: [createEmptyIngredient()],
