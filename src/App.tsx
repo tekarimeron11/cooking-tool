@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { Category, IngredientLine, Recipe, Step } from './types'
-import { loadAppData, normalizeAppData, saveAppData } from './storage'
+import { getInitialData, loadAppData, normalizeAppData, saveAppData } from './storage'
 import CategoryList from './components/CategoryList'
 import RecipeList from './components/RecipeList'
 import RecipeEditor from './components/RecipeEditor'
@@ -148,7 +148,17 @@ const reducer = (state: State, action: Action): State => {
       }
     }
     case 'create': {
-      const categoryId = state.selectedCategoryId ?? state.categories[0]?.id ?? uid()
+      const selectedCategory = state.categories.find(
+        (category) => category.id === state.selectedCategoryId,
+      )
+      const fallbackCategoryId =
+        state.categories.find((category) => category.name !== 'お気に入り')?.id ??
+        state.categories[0]?.id ??
+        uid()
+      const categoryId =
+        selectedCategory?.name === 'お気に入り'
+          ? fallbackCategoryId
+          : state.selectedCategoryId ?? fallbackCategoryId
       const draft: Recipe = {
         id: uid(),
         title: '新しいレシピ',
@@ -388,6 +398,7 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setAuthUser(user)
       setAuthError('')
+      const shouldReset = new URLSearchParams(window.location.search).get('reset') === '1'
       if (!user) {
         setRemoteReady(false)
         setAuthLoading(false)
@@ -395,6 +406,19 @@ function App() {
       }
       try {
         const ref = doc(db, 'users', user.uid, 'app', 'data')
+        if (shouldReset) {
+          const initial = getInitialData()
+          const payload = sanitizeForFirestore({
+            ...initial,
+            updatedAt: serverTimestamp(),
+          })
+          await setDoc(ref, payload as Record<string, unknown>, { merge: false })
+          dispatch({ type: 'set_data', categories: initial.categories, recipes: initial.recipes })
+          saveAppData(initial)
+          setRemoteReady(true)
+          setAuthLoading(false)
+          return
+        }
         const snap = await getDoc(ref)
         if (snap.exists()) {
           const data = normalizeAppData(snap.data())
@@ -456,8 +480,13 @@ function App() {
   )
 
   const recipesInCategory = useMemo(
-    () => state.recipes.filter((item) => item.categoryId === state.selectedCategoryId),
-    [state.recipes, state.selectedCategoryId],
+    () => {
+      if (selectedCategory?.name === 'お気に入り') {
+        return state.recipes.filter((item) => item.isFavorite)
+      }
+      return state.recipes.filter((item) => item.categoryId === state.selectedCategoryId)
+    },
+    [state.recipes, state.selectedCategoryId, selectedCategory?.name],
   )
 
   const selectedRecipe = useMemo(
@@ -469,8 +498,10 @@ function App() {
     () =>
       state.categories.map((category) => ({
         ...category,
-        recipeCount: state.recipes.filter((recipe) => recipe.categoryId === category.id)
-          .length,
+        recipeCount:
+          category.name === 'お気に入り'
+            ? state.recipes.filter((recipe) => recipe.isFavorite).length
+            : state.recipes.filter((recipe) => recipe.categoryId === category.id).length,
       })),
     [state.categories, state.recipes],
   )
