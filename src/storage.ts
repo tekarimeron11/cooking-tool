@@ -22,30 +22,6 @@ const sampleCategories = (): Category[] => [
   { id: 'cat-others', name: 'その他' },
 ]
 
-const buildRecipe = (
-  id: string,
-  title: string,
-  categoryId: string,
-  ingredients: IngredientLine[],
-  steps: Step[],
-  isFavorite = false,
-  imageUrl?: string,
-  sourceUrl?: string,
-): Recipe => {
-  const recipe: Recipe = {
-    id,
-    title,
-    categoryId,
-    ingredients,
-    steps,
-    isFavorite,
-  }
-  if (imageUrl) recipe.imageUrl = imageUrl
-  if (sourceUrl) recipe.sourceUrl = sourceUrl
-  return recipe
-}
-
-
 const sampleRecipes = (_categories: Category[]): Recipe[] => []
 
 
