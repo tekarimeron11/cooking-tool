@@ -5,10 +5,9 @@ type Props = {
   recipes: Recipe[]
   selectedId: string | null
   categoryName: string
-  onSelect: (id: string) => void
   onCreate: () => void
-  onEdit: () => void
-  onRun: () => void
+  onEdit: (id: string) => void
+  onRun: (id: string) => void
   onDelete: (id: string) => void
   onToggleFavorite: (id: string) => void
 }
@@ -17,7 +16,6 @@ export default function RecipeList({
   recipes,
   selectedId,
   categoryName,
-  onSelect,
   onCreate,
   onEdit,
   onRun,
@@ -26,6 +24,7 @@ export default function RecipeList({
 }: Props) {
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<'default' | 'recent'>('recent')
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const normalizedQuery = query.trim().toLowerCase()
   const filteredRecipes = useMemo(() => {
     const base = normalizedQuery
@@ -50,7 +49,7 @@ export default function RecipeList({
         <div>
           <h2>レシピ一覧</h2>
           <p className="subtle">
-            {categoryName} のレシピを表示中。作成・選択して編集/実行へ進みます。
+            {categoryName} のレシピを表示中。レシピを押すと実行確認が出ます。
           </p>
         </div>
         <button className="btn primary" onClick={onCreate}>
@@ -97,15 +96,12 @@ export default function RecipeList({
               <button
                 type="button"
                 className={`recipe-card ${selectedId === recipe.id ? 'selected' : ''}`}
-                onClick={() => onSelect(recipe.id)}
+                onClick={() => {
+                  setMenuOpenId(null)
+                  const ok = window.confirm('実行しますか？')
+                  if (ok) onRun(recipe.id)
+                }}
               >
-                <div className="recipe-card-media">
-                  {recipe.imageUrl ? (
-                    <img src={recipe.imageUrl} alt={recipe.title} />
-                  ) : (
-                    <div className="recipe-placeholder">No Image</div>
-                  )}
-                </div>
                 <div className="recipe-card-body">
                   <span className="recipe-title">{recipe.title}</span>
                   <span className="recipe-meta">
@@ -124,18 +120,39 @@ export default function RecipeList({
                   >
                     {recipe.isFavorite ? '★' : '☆'}
                   </button>
-                  {selectedId === recipe.id && <span className="badge">選択中</span>}
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setMenuOpenId((prev) => (prev === recipe.id ? null : recipe.id))
+                    }}
+                    aria-label="メニュー"
+                  >
+                    ⋯
+                  </button>
                 </div>
               </button>
-              {selectedId === recipe.id && (
-                <div className="actions-row recipe-inline-actions">
-                  <button className="btn accent" onClick={onRun}>
-                    実行
-                  </button>
-                  <button className="btn ghost" onClick={onEdit}>
+              {menuOpenId === recipe.id && (
+                <div className="recipe-menu">
+                  <button
+                    type="button"
+                    className="btn ghost small"
+                    onClick={() => {
+                      setMenuOpenId(null)
+                      onEdit(recipe.id)
+                    }}
+                  >
                     編集
                   </button>
-                  <button className="btn danger" onClick={() => onDelete(selectedId)}>
+                  <button
+                    type="button"
+                    className="btn danger small"
+                    onClick={() => {
+                      setMenuOpenId(null)
+                      onDelete(recipe.id)
+                    }}
+                  >
                     削除
                   </button>
                 </div>

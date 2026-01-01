@@ -20,6 +20,7 @@ export type Recipe = {
   title: string
   categoryId: string
   imageUrl?: string
+  sourceUrl?: string
   ingredients: IngredientLine[]
   steps: Step[]
   isFavorite?: boolean

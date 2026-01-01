@@ -38,9 +38,10 @@ type Action =
   | { type: 'create_category'; name: string }
   | { type: 'create' }
   | { type: 'edit' }
+  | { type: 'edit_recipe'; id: string }
   | { type: 'update_title'; title: string }
+  | { type: 'update_source_url'; sourceUrl: string }
   | { type: 'update_category'; categoryId: string }
-  | { type: 'update_image_url'; imageUrl: string }
   | { type: 'add_ingredient' }
   | { type: 'update_ingredient_name'; ingredientId: string; name: string }
   | { type: 'update_ingredient_amount'; ingredientId: string; amountText: string }
@@ -54,6 +55,7 @@ type Action =
   | { type: 'delete_recipe'; id: string }
   | { type: 'toggle_favorite'; id: string }
   | { type: 'run' }
+  | { type: 'run_recipe'; id: string }
   | { type: 'run_prev' }
   | { type: 'run_next' }
   | { type: 'back_to_list' }
@@ -163,7 +165,7 @@ const reducer = (state: State, action: Action): State => {
         id: uid(),
         title: '新しいレシピ',
         categoryId,
-        imageUrl: '',
+        sourceUrl: '',
         ingredients: [createEmptyIngredient()],
         steps: [createEmptyStep()],
       }
@@ -175,23 +177,33 @@ const reducer = (state: State, action: Action): State => {
       if (!recipe) return state
       return { ...state, view: 'edit', draft: cloneRecipe(recipe) }
     }
+    case 'edit_recipe': {
+      const recipe = state.recipes.find((item) => item.id === action.id)
+      if (!recipe) return state
+      return {
+        ...state,
+        selectedRecipeId: action.id,
+        view: 'edit',
+        draft: cloneRecipe(recipe),
+      }
+    }
     case 'update_title':
       if (!state.draft) return state
       return {
         ...state,
         draft: { ...state.draft, title: action.title },
       }
+    case 'update_source_url':
+      if (!state.draft) return state
+      return {
+        ...state,
+        draft: { ...state.draft, sourceUrl: action.sourceUrl },
+      }
     case 'update_category':
       if (!state.draft) return state
       return {
         ...state,
         draft: { ...state.draft, categoryId: action.categoryId },
-      }
-    case 'update_image_url':
-      if (!state.draft) return state
-      return {
-        ...state,
-        draft: { ...state.draft, imageUrl: action.imageUrl },
       }
     case 'add_ingredient':
       if (!state.draft) return state
@@ -340,11 +352,24 @@ const reducer = (state: State, action: Action): State => {
             : item,
         ),
       }
+    case 'run_recipe': {
+      const recipe = state.recipes.find((item) => item.id === action.id)
+      if (!recipe) return state
+      return {
+        ...state,
+        selectedRecipeId: action.id,
+        view: 'run',
+        runIndex: 0,
+        recipes: state.recipes.map((item) =>
+          item.id === action.id ? { ...item, lastRunAt: Date.now() } : item,
+        ),
+      }
+    }
     case 'run_prev':
       return { ...state, runIndex: Math.max(0, state.runIndex - 1) }
     case 'run_next': {
       const recipe = state.recipes.find((item) => item.id === state.selectedRecipeId)
-      const maxIndex = recipe ? recipe.steps.length - 1 : 0
+      const maxIndex = recipe ? recipe.steps.length : 0
       return { ...state, runIndex: Math.min(maxIndex, state.runIndex + 1) }
     }
     case 'back_to_list':
@@ -561,10 +586,9 @@ function App() {
           recipes={recipesInCategory}
           selectedId={state.selectedRecipeId}
           categoryName={selectedCategory?.name ?? '未分類'}
-          onSelect={(id) => dispatch({ type: 'select_recipe', id })}
           onCreate={() => dispatch({ type: 'create' })}
-          onEdit={() => dispatch({ type: 'edit' })}
-          onRun={() => dispatch({ type: 'run' })}
+          onEdit={(id) => dispatch({ type: 'edit_recipe', id })}
+          onRun={(id) => dispatch({ type: 'run_recipe', id })}
           onDelete={(id) => {
             const ok = window.confirm('このレシピを削除しますか？')
             if (ok) dispatch({ type: 'delete_recipe', id })
@@ -578,10 +602,12 @@ function App() {
           draft={state.draft}
           categories={state.categories}
           onTitleChange={(title) => dispatch({ type: 'update_title', title })}
+          onSourceUrlChange={(sourceUrl) =>
+            dispatch({ type: 'update_source_url', sourceUrl })
+          }
           onCategoryChange={(categoryId) =>
             dispatch({ type: 'update_category', categoryId })
           }
-          onImageUrlChange={(imageUrl) => dispatch({ type: 'update_image_url', imageUrl })}
           onIngredientNameChange={(ingredientId, name) =>
             dispatch({ type: 'update_ingredient_name', ingredientId, name })
           }
