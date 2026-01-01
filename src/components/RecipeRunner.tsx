@@ -146,7 +146,7 @@ export default function RecipeRunner({ recipe, index, onPrev, onNext, onBack }: 
           onClick={() => {
             if (isLast) {
               triggerFinishPulse()
-              setTimeout(() => onBack(), 500)
+              setTimeout(() => onBack(), 2000)
               return
             }
             triggerNextPulse()

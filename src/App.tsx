@@ -504,15 +504,7 @@ function App() {
     [state.categories, state.selectedCategoryId],
   )
 
-  const recipesInCategory = useMemo(
-    () => {
-      if (selectedCategory?.name === 'お気に入り') {
-        return state.recipes.filter((item) => item.isFavorite)
-      }
-      return state.recipes.filter((item) => item.categoryId === state.selectedCategoryId)
-    },
-    [state.recipes, state.selectedCategoryId, selectedCategory?.name],
-  )
+  const recipesInCategory = useMemo(() => state.recipes, [state.recipes])
 
   const selectedRecipe = useMemo(
     () => state.recipes.find((item) => item.id === state.selectedRecipeId) ?? null,
