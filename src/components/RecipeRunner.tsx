@@ -17,14 +17,33 @@ export default function RecipeRunner({ recipe, index, onPrev, onNext, onBack }: 
   const showIngredients = index === 0
   const [ingredientsOpen, setIngredientsOpen] = useState(true)
 
+  const iconForRecipe = (title: string) => {
+    const normalized = title.toLowerCase()
+    if (normalized.includes('カレー') || normalized.includes('curry')) return '🍛'
+    if (normalized.includes('パスタ') || normalized.includes('pasta')) return '🍝'
+    if (normalized.includes('サラダ') || normalized.includes('salad')) return '🥗'
+    if (normalized.includes('スープ') || normalized.includes('soup')) return '🥣'
+    if (normalized.includes('パン') || normalized.includes('bread')) return '🥖'
+    if (normalized.includes('デザート') || normalized.includes('ケーキ')) return '🍰'
+    if (normalized.includes('肉') || normalized.includes('steak')) return '🥩'
+    if (normalized.includes('魚') || normalized.includes('fish')) return '🐟'
+    if (normalized.includes('ご飯') || normalized.includes('rice')) return '🍚'
+    return '🍳'
+  }
+
   return (
     <div className="panel run">
       <div className="panel-header run-header">
-        <div>
-          <h2>{recipe.title}</h2>
+        <div className="run-title">
+          <div className="recipe-icon large" aria-hidden="true">
+            {iconForRecipe(recipe.title)}
+          </div>
+          <div>
+            <h2>{recipe.title}</h2>
           <p className="subtle">
             ステップ {index + 1}/{recipe.steps.length}
           </p>
+          </div>
         </div>
         <button className="btn ghost" onClick={onBack}>
           一覧へ戻る

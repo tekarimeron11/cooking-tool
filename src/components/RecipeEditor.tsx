@@ -6,7 +6,6 @@ type Props = {
   categories: Category[]
   onTitleChange: (title: string) => void
   onCategoryChange: (categoryId: string) => void
-  onImageUrlChange: (url: string) => void
   onIngredientNameChange: (ingredientId: string, name: string) => void
   onIngredientAmountChange: (ingredientId: string, amountText: string) => void
   onAddIngredient: () => void
@@ -25,7 +24,6 @@ export default function RecipeEditor({
   categories,
   onTitleChange,
   onCategoryChange,
-  onImageUrlChange,
   onIngredientNameChange,
   onIngredientAmountChange,
   onAddIngredient,
@@ -114,17 +112,6 @@ export default function RecipeEditor({
     setPasteText('')
   }
 
-  const handleImageFile = (file?: File | null) => {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        onImageUrlChange(reader.result)
-      }
-    }
-    reader.readAsDataURL(file)
-  }
-
   return (
     <div className="panel">
       <div className="panel-header">
@@ -160,26 +147,6 @@ export default function RecipeEditor({
             </option>
           ))}
         </select>
-      </label>
-
-      <label className="field">
-        <span>画像URL（任意）</span>
-        <input
-          className="input"
-          value={draft.imageUrl ?? ''}
-          onChange={(event) => onImageUrlChange(event.target.value)}
-          placeholder="https://example.com/recipe.jpg"
-        />
-      </label>
-
-      <label className="field">
-        <span>画像ファイル（端末から選択）</span>
-        <input
-          className="input"
-          type="file"
-          accept="image/*"
-          onChange={(event) => handleImageFile(event.target.files?.[0])}
-        />
       </label>
 
       <label className="field">
