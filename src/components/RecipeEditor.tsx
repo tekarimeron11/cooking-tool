@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react'
-import type { Category, IngredientLine, Recipe, Step } from '../types'
+import type { Category, Recipe } from '../types'
 
 type Props = {
   draft: Recipe
   categories: Category[]
   onTitleChange: (title: string) => void
-  onSourceUrlChange: (sourceUrl: string) => void
   onCategoryChange: (categoryId: string) => void
   onIngredientNameChange: (ingredientId: string, name: string) => void
   onIngredientAmountChange: (ingredientId: string, amountText: string) => void
@@ -15,7 +13,6 @@ type Props = {
   onStepNoteChange: (stepId: string, note: string) => void
   onAddStep: () => void
   onDeleteStep: (stepId: string) => void
-  onBulkImport: (ingredients: IngredientLine[], steps: Step[]) => void
   onSave: () => void
   onBack: () => void
 }
@@ -24,7 +21,6 @@ export default function RecipeEditor({
   draft,
   categories,
   onTitleChange,
-  onSourceUrlChange,
   onCategoryChange,
   onIngredientNameChange,
   onIngredientAmountChange,
@@ -34,85 +30,9 @@ export default function RecipeEditor({
   onStepNoteChange,
   onAddStep,
   onDeleteStep,
-  onBulkImport,
   onSave,
   onBack,
 }: Props) {
-  const [pasteText, setPasteText] = useState('')
-
-  useEffect(() => {
-    setPasteText('')
-  }, [draft.id])
-
-  const uid = () =>
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`
-
-  const parsePaste = (text: string) => {
-    const lines = text.split(/\r?\n/).map((line) => line.trim())
-    let section: 'ingredients' | 'steps' | null = null
-    const ingredients: IngredientLine[] = []
-    const steps: Step[] = []
-    const nutritionPattern =
-      /(エネルギー|たんぱく質|タンパク質|脂質|炭水化物|食物繊維|kcal|kJ)/i
-
-    for (const raw of lines) {
-      if (!raw) continue
-      if (nutritionPattern.test(raw)) continue
-      if (/^【\s*材料\s*】/.test(raw)) {
-        section = 'ingredients'
-        continue
-      }
-      if (/^【\s*(作り方|手順|ステップ)\s*】/.test(raw)) {
-        section = 'steps'
-        continue
-      }
-      if (!section) {
-        if (/^\s*[\d０-９]+(?:[.\uFF0E]\d+)?/.test(raw)) {
-          section = 'steps'
-        } else {
-          continue
-        }
-      }
-
-      if (section === 'ingredients') {
-        const cleaned = raw.replace(/[・･\.\u30FB\u2026\uFF0E]+/g, ' ').replace(/\s+/g, ' ')
-        const parts = cleaned.split(' ').filter(Boolean)
-        if (parts.length === 0) continue
-        const name = parts.shift() ?? ''
-        const amountText = parts.join(' ')
-        ingredients.push({
-          id: uid(),
-          name,
-          amountText: amountText || '',
-        })
-      } else {
-        const cleaned = raw
-          .replace(/^\s*[\d０-９]+(?:[.\uFF0E]\d+)?[)\uFF09\-：:]?\s*/, '')
-          .replace(/^\s*[-・●]\s*/, '')
-          .trim()
-        if (!cleaned) continue
-        steps.push({ id: uid(), title: cleaned })
-      }
-    }
-
-    return { ingredients, steps }
-  }
-
-  const handleImport = () => {
-    const { ingredients, steps } = parsePaste(pasteText)
-    if (ingredients.length === 0 && steps.length === 0) return
-    const hasExisting =
-      draft.ingredients.some((item) => item.name.trim() !== '') ||
-      draft.steps.some((item) => item.title.trim() !== '')
-    if (hasExisting) {
-      const ok = window.confirm('現在の材料・ステップを上書きします。よろしいですか？')
-      if (!ok) return
-    }
-    onBulkImport(ingredients, steps)
-    setPasteText('')
-  }
 
   return (
     <div className="panel">
@@ -129,20 +49,10 @@ export default function RecipeEditor({
       <label className="field">
         <span>レシピタイトル</span>
         <input
-          className="input"
+          className="input recipe-title-input"
           value={draft.title}
           onChange={(event) => onTitleChange(event.target.value)}
           placeholder="例）野菜たっぷりミネストローネ"
-        />
-      </label>
-
-      <label className="field">
-        <span>出典URL</span>
-        <input
-          className="input"
-          value={draft.sourceUrl ?? ''}
-          onChange={(event) => onSourceUrlChange(event.target.value)}
-          placeholder="https://example.com/recipe"
         />
       </label>
 
@@ -153,25 +63,14 @@ export default function RecipeEditor({
           value={draft.categoryId}
           onChange={(event) => onCategoryChange(event.target.value)}
         >
-          {categories.map((category) => (
+          {categories
+            .filter((category) => category.name !== 'お気に入り')
+            .map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
             </option>
           ))}
         </select>
-      </label>
-
-      <label className="field">
-        <span>コピペ入力</span>
-        <textarea
-          className="input textarea"
-          value={pasteText}
-          onChange={(event) => setPasteText(event.target.value)}
-          rows={6}
-        />
-        <button className="btn accent" type="button" onClick={handleImport}>
-          材料・作り方を取り込む
-        </button>
       </label>
 
       <div className="steps-header">

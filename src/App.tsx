@@ -656,9 +656,6 @@ function App() {
           draft={state.draft}
           categories={state.categories}
           onTitleChange={(title) => dispatch({ type: 'update_title', title })}
-          onSourceUrlChange={(sourceUrl) =>
-            dispatch({ type: 'update_source_url', sourceUrl })
-          }
           onCategoryChange={(categoryId) =>
             dispatch({ type: 'update_category', categoryId })
           }
@@ -680,9 +677,6 @@ function App() {
           }
           onAddStep={() => dispatch({ type: 'add_step' })}
           onDeleteStep={(stepId) => dispatch({ type: 'delete_step', stepId })}
-          onBulkImport={(ingredients, steps) =>
-            dispatch({ type: 'bulk_import', ingredients, steps })
-          }
           onSave={() => dispatch({ type: 'save_draft' })}
           onBack={() => dispatch({ type: 'back_to_list' })}
         />

@@ -357,6 +357,10 @@ body {
   color: rgba(232, 249, 255, 0.6);
 }
 
+.recipe-title-input {
+  color: rgba(232, 249, 255, 0.75);
+}
+
 select.input,
 textarea.input {
   font-family: 'Rajdhani', 'Noto Sans JP', sans-serif;
