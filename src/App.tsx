@@ -37,6 +37,8 @@ type Action =
   | { type: 'open_category'; id: string }
   | { type: 'select_recipe'; id: string }
   | { type: 'create_category'; name: string }
+  | { type: 'rename_category'; id: string; name: string }
+  | { type: 'delete_category'; id: string }
   | { type: 'create' }
   | { type: 'edit' }
   | { type: 'edit_recipe'; id: string }
@@ -152,6 +154,38 @@ const reducer = (state: State, action: Action): State => {
         selectedRecipeId: findFirstRecipeId(state.recipes, category.id),
         view: 'category_list',
         lastListView: 'category_list',
+      }
+    }
+    case 'rename_category': {
+      const nextCategories = state.categories.map((category) =>
+        category.id === action.id ? { ...category, name: action.name } : category,
+      )
+      return { ...state, categories: nextCategories }
+    }
+    case 'delete_category': {
+      const category = state.categories.find((item) => item.id === action.id)
+      if (!category || category.name === 'お気に入り') return state
+      const remainingCategories = state.categories.filter((item) => item.id !== action.id)
+      const fallbackCategoryId =
+        remainingCategories.find((item) => item.name !== 'お気に入り')?.id ??
+        remainingCategories[0]?.id ??
+        null
+      const nextRecipes = state.recipes.map((recipe) =>
+        recipe.categoryId === action.id && fallbackCategoryId
+          ? { ...recipe, categoryId: fallbackCategoryId }
+          : recipe,
+      )
+      const nextSelectedCategoryId =
+        state.selectedCategoryId === action.id ? fallbackCategoryId : state.selectedCategoryId
+      const nextSelectedRecipeId = nextSelectedCategoryId
+        ? findFirstRecipeId(nextRecipes, nextSelectedCategoryId)
+        : null
+      return {
+        ...state,
+        categories: remainingCategories,
+        recipes: nextRecipes,
+        selectedCategoryId: nextSelectedCategoryId,
+        selectedRecipeId: nextSelectedRecipeId,
       }
     }
     case 'create': {
@@ -580,6 +614,8 @@ function App() {
           selectedId={state.selectedCategoryId}
           onSelect={(id) => dispatch({ type: 'open_category', id })}
           onCreate={(name) => dispatch({ type: 'create_category', name })}
+          onRename={(id, name) => dispatch({ type: 'rename_category', id, name })}
+          onDelete={(id) => dispatch({ type: 'delete_category', id })}
         />
       )}
 

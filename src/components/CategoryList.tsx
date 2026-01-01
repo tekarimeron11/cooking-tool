@@ -8,10 +8,20 @@ type Props = {
   selectedId: string | null
   onSelect: (id: string) => void
   onCreate: (name: string) => void
+  onRename: (id: string, name: string) => void
+  onDelete: (id: string) => void
 }
 
-export default function CategoryList({ categories, selectedId, onSelect, onCreate }: Props) {
+export default function CategoryList({
+  categories,
+  selectedId,
+  onSelect,
+  onCreate,
+  onRename,
+  onDelete,
+}: Props) {
   const [name, setName] = useState('')
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const categoryImages: Record<string, string> = {
     お気に入り:
       'https://images.unsplash.com/photo-1560107138-db0b048ded90?auto=format&fit=crop&w=1200&q=80',
@@ -54,25 +64,70 @@ export default function CategoryList({ categories, selectedId, onSelect, onCreat
 
       <div className="category-grid">
         {categories.map((category) => (
-          <button
-            key={category.id}
-            type="button"
-            className={`category-card ${selectedId === category.id ? 'selected' : ''}`}
-            onClick={() => onSelect(category.id)}
-          >
-            <div className="category-card-media">
-              <img
-                src={categoryImages[category.name] ?? categoryImages['その他']}
-                alt={category.name}
-                loading="lazy"
-              />
-            </div>
-            <div className="category-card-body">
-              <span className="category-title">{category.name}</span>
-              <span className="category-meta">{category.recipeCount} レシピ</span>
-            </div>
-            {selectedId === category.id && <span className="badge">選択中</span>}
-          </button>
+          <div key={category.id} className="category-item">
+            <button
+              type="button"
+              className={`category-card ${selectedId === category.id ? 'selected' : ''}`}
+              onClick={() => onSelect(category.id)}
+            >
+              <div className="category-card-media">
+                <img
+                  src={categoryImages[category.name] ?? categoryImages['その他']}
+                  alt={category.name}
+                  loading="lazy"
+                />
+              </div>
+              <div className="category-card-body">
+                <span className="category-title">{category.name}</span>
+                <span className="category-meta">{category.recipeCount} レシピ</span>
+              </div>
+              <div className="category-card-actions">
+                {category.name !== 'お気に入り' && (
+                  <button
+                    type="button"
+                    className="icon-btn small"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setMenuOpenId((prev) => (prev === category.id ? null : category.id))
+                    }}
+                    aria-label="カテゴリメニュー"
+                  >
+                    ⋯
+                  </button>
+                )}
+              </div>
+              {selectedId === category.id && <span className="badge">選択中</span>}
+            </button>
+            {menuOpenId === category.id && (
+              <div className="category-menu">
+                <button
+                  type="button"
+                  className="btn ghost small"
+                  onClick={() => {
+                    setMenuOpenId(null)
+                    const nextName = window.prompt('新しいカテゴリ名を入力してください', category.name)
+                    const trimmed = nextName?.trim()
+                    if (trimmed && trimmed !== category.name) {
+                      onRename(category.id, trimmed)
+                    }
+                  }}
+                >
+                  名前変更
+                </button>
+                <button
+                  type="button"
+                  className="btn danger small"
+                  onClick={() => {
+                    setMenuOpenId(null)
+                    const ok = window.confirm('このカテゴリを削除しますか？')
+                    if (ok) onDelete(category.id)
+                  }}
+                >
+                  削除
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
