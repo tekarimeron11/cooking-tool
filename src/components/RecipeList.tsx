@@ -87,9 +87,6 @@ export default function RecipeList({
       {filteredRecipes.length === 0 ? (
         <div className="empty">
           <p>{recipes.length === 0 ? 'まだレシピがありません。' : '一致するレシピがありません。'}</p>
-          <button className="btn primary" onClick={onCreate}>
-            レシピを作成
-          </button>
         </div>
       ) : (
         <div className="recipe-grid">
