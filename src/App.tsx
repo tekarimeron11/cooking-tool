@@ -40,6 +40,7 @@ type Action =
   | { type: 'edit' }
   | { type: 'update_title'; title: string }
   | { type: 'update_category'; categoryId: string }
+  | { type: 'update_image_url'; imageUrl: string }
   | { type: 'add_ingredient' }
   | { type: 'update_ingredient_name'; ingredientId: string; name: string }
   | { type: 'update_ingredient_amount'; ingredientId: string; amountText: string }
@@ -175,6 +176,12 @@ const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         draft: { ...state.draft, categoryId: action.categoryId },
+      }
+    case 'update_image_url':
+      if (!state.draft) return state
+      return {
+        ...state,
+        draft: { ...state.draft, imageUrl: action.imageUrl },
       }
     case 'add_ingredient':
       if (!state.draft) return state
@@ -543,6 +550,7 @@ function App() {
           onCategoryChange={(categoryId) =>
             dispatch({ type: 'update_category', categoryId })
           }
+          onImageUrlChange={(imageUrl) => dispatch({ type: 'update_image_url', imageUrl })}
           onIngredientNameChange={(ingredientId, name) =>
             dispatch({ type: 'update_ingredient_name', ingredientId, name })
           }

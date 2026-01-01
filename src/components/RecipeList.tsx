@@ -26,21 +26,6 @@ export default function RecipeList({
 }: Props) {
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<'default' | 'recent'>('recent')
-
-  const iconForRecipe = (title: string) => {
-    const normalized = title.toLowerCase()
-    if (normalized.includes('カレー') || normalized.includes('curry')) return '🍛'
-    if (normalized.includes('パスタ') || normalized.includes('pasta')) return '🍝'
-    if (normalized.includes('サラダ') || normalized.includes('salad')) return '🥗'
-    if (normalized.includes('スープ') || normalized.includes('soup')) return '🥣'
-    if (normalized.includes('パン') || normalized.includes('bread')) return '🥖'
-    if (normalized.includes('デザート') || normalized.includes('ケーキ')) return '🍰'
-    if (normalized.includes('肉') || normalized.includes('steak')) return '🥩'
-    if (normalized.includes('魚') || normalized.includes('fish')) return '🐟'
-    if (normalized.includes('ご飯') || normalized.includes('rice')) return '🍚'
-    return '🍳'
-  }
-
   const normalizedQuery = query.trim().toLowerCase()
   const filteredRecipes = useMemo(() => {
     const base = normalizedQuery
@@ -115,9 +100,11 @@ export default function RecipeList({
                 onClick={() => onSelect(recipe.id)}
               >
                 <div className="recipe-card-media">
-                  <div className="recipe-icon" aria-hidden="true">
-                    {iconForRecipe(recipe.title)}
-                  </div>
+                  {recipe.imageUrl ? (
+                    <img src={recipe.imageUrl} alt={recipe.title} />
+                  ) : (
+                    <div className="recipe-placeholder">No Image</div>
+                  )}
                 </div>
                 <div className="recipe-card-body">
                   <span className="recipe-title">{recipe.title}</span>
