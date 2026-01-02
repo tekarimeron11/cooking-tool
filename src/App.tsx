@@ -408,7 +408,7 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, runIndex: Math.max(0, state.runIndex - 1) }
     case 'run_next': {
       const recipe = state.recipes.find((item) => item.id === state.selectedRecipeId)
-      const maxIndex = recipe ? recipe.steps.length - 1 : 0
+      const maxIndex = recipe ? recipe.steps.length : 0
       return { ...state, runIndex: Math.min(maxIndex, state.runIndex + 1) }
     }
     case 'back_to_list':
