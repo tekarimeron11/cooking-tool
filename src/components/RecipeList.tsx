@@ -40,7 +40,7 @@ export default function RecipeList({
     if (sortMode === 'recent') {
       return [...base].sort((a, b) => (b.lastRunAt ?? 0) - (a.lastRunAt ?? 0))
     }
-    return base
+    return [...base].reverse()
   }, [recipes, normalizedQuery, sortMode])
 
   return (

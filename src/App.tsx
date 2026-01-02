@@ -408,7 +408,7 @@ const reducer = (state: State, action: Action): State => {
       return { ...state, runIndex: Math.max(0, state.runIndex - 1) }
     case 'run_next': {
       const recipe = state.recipes.find((item) => item.id === state.selectedRecipeId)
-      const maxIndex = recipe ? recipe.steps.length : 0
+      const maxIndex = recipe ? recipe.steps.length - 1 : 0
       return { ...state, runIndex: Math.min(maxIndex, state.runIndex + 1) }
     }
     case 'back_to_list':
@@ -569,44 +569,48 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div>
-          <p className="eyebrow">Recipe Flow</p>
-          <h1>CYBER RECIPE LAB</h1>
-        </div>
-        <div className="auth-box">
-          {authLoading ? (
-            <span className="subtle">認証中...</span>
-          ) : authUser ? (
-            <>
-              <span className="auth-name">{authUser.displayName ?? 'ログイン中'}</span>
-              <button className="btn ghost small" onClick={handleSignOut}>
-                ログアウト
-              </button>
-            </>
-          ) : (
-            <button className="btn primary" onClick={handleSignIn}>
-              Googleでログイン
-            </button>
-          )}
-        </div>
-      </header>
-      {authError && <p className="auth-error">{authError}</p>}
+      {state.view !== 'run' && (
+        <>
+          <header className="app-header">
+            <div>
+              <p className="eyebrow">Recipe Flow</p>
+              <h1>CYBER RECIPE LAB</h1>
+            </div>
+            <div className="auth-box">
+              {authLoading ? (
+                <span className="subtle">認証中...</span>
+              ) : authUser ? (
+                <>
+                  <span className="auth-name">{authUser.displayName ?? 'ログイン中'}</span>
+                  <button className="btn ghost small" onClick={handleSignOut}>
+                    ログアウト
+                  </button>
+                </>
+              ) : (
+                <button className="btn primary" onClick={handleSignIn}>
+                  Googleでログイン
+                </button>
+              )}
+            </div>
+          </header>
+          {authError && <p className="auth-error">{authError}</p>}
 
-      <nav className="app-nav">
-        <button
-          className={`btn ghost ${state.view === 'categories' ? 'active' : ''}`}
-          onClick={() => dispatch({ type: 'goto_categories' })}
-        >
-          カテゴリ
-        </button>
-        <button
-          className={`btn ghost ${state.view === 'list' ? 'active' : ''}`}
-          onClick={() => dispatch({ type: 'goto_list' })}
-        >
-          レシピ一覧
-        </button>
-      </nav>
+          <nav className="app-nav">
+            <button
+              className={`btn ghost ${state.view === 'categories' ? 'active' : ''}`}
+              onClick={() => dispatch({ type: 'goto_categories' })}
+            >
+              カテゴリ
+            </button>
+            <button
+              className={`btn ghost ${state.view === 'list' ? 'active' : ''}`}
+              onClick={() => dispatch({ type: 'goto_list' })}
+            >
+              レシピ一覧
+            </button>
+          </nav>
+        </>
+      )}
 
       {state.view === 'categories' && (
         <CategoryList
