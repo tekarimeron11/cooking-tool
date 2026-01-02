@@ -23,7 +23,8 @@
 - Vite
 - 状態管理: useReducer
 - 追加ライブラリなし
-- Firebase / Firestore は未使用（ローカル保存のみ）
+- Firebase Authentication（Googleログイン）
+- Firestore（ユーザーごとの同期）
 
 ## セットアップ
 ```powershell
@@ -40,6 +41,7 @@ npm run preview
 ## データ保存
 - localStorage キー: `recipe-mvp.v1`
 - 初回はサンプルデータを投入（オリジナルレシピ）
+- ログイン時は Firestore と同期
 
 ## メモ
 - プライベートブラウズでは localStorage が消えることがあります
