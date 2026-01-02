@@ -23,6 +23,7 @@
 - Vite
 - 状態管理: useReducer
 - 追加ライブラリなし
+- Firebase / Firestore は未使用（ローカル保存のみ）
 
 ## セットアップ
 ```powershell
